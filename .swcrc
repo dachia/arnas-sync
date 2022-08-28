@@ -1,0 +1,17 @@
+{
+  "env": {
+    "targets": {
+      "node": "14"
+    }
+  },
+  "jsc": {
+    "externalHelpers": false,
+    "parser": {
+      "syntax": "typescript",
+      "tsx": false,
+      "decorators": true
+    },
+    "target": "es2020"
+  },
+  "minify": false
+}
