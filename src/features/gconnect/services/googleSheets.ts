@@ -69,7 +69,7 @@ export class GoogleSheets {
       spreadsheetId: this.state.spreadsheetId,
       requestBody
     })
-    console.info(JSON.stringify(res.data, null, 2))
+    // console.info(JSON.stringify(res.data, null, 2))
   }
 
   async findRowByValue(value: string, opts?: FindRowByValueOpts): Promise<[number, number]> {
