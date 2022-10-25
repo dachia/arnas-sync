@@ -1,5 +1,5 @@
-import { program  } from "commander";
-import { garminClient, googleClient, googleSheets } from "../features/gconnect/services";
+import { program } from "commander";
+import { garminClient, googleClient, googleSheets, Split } from "../features/gconnect/services";
 import { getCurrentMonthName, getCurrentYearName, getMonthDayNumber } from "../shared/utils";
 
 export type UploadOpts = {
@@ -74,11 +74,13 @@ program
     // const info = await garminClient.getTodaysInfo()
     await garminClient.login(opts)
     const info = await garminClient.getTodaysInfo()
-
-    await googleSheets.addNote(dayRowNum, dayColNum, 
-      `${info?.run?.distance} km, ${info?.run?.pace} min/km ${info?.run?.avgHr}bpm (avg), ${info?.run?.maxHr}bpm (max)\n` +
-    `rhr: ${info?.health?.hr.restingHr}, miegas: ${info?.health?.sleep?.timeH}(deep: ${info?.health?.sleep?.deepH}, rem: ${info?.health?.sleep.remH})`
-      )
-
+    let splits = ``
+    const splitToString = (split: Split) => `${split.distance} km, ${split?.pace} min/km ${split?.avgHr}bpm (avg), ${split?.maxHr}bpm (max)\n`
+    await googleSheets.addNote(dayRowNum, dayColNum,
+      splitToString(info.run) +
+      `rhr: ${info?.health?.hr.restingHr}, miegas: ${info?.health?.sleep?.timeH}(deep: ${info?.health?.sleep?.deepH}, rem: ${info?.health?.sleep.remH})\n` +
+      `splits:\n` +
+      info?.run?.splits?.map(s => splitToString(s)).join("")
+    )
   })
 program.parseAsync()

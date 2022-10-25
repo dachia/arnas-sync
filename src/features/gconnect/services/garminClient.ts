@@ -47,6 +47,7 @@ export class GarminClient {
       }
     } else {
       await this.props.garminConnect.login(creds.username, creds.password)
+      // console.log("no session, full login")
     }
   }
 
@@ -75,7 +76,24 @@ export class GarminClient {
       return `${h.toFixed(0)}:${sec.toFixed(0)}`
     }
     // const actDetails = await this.props.garminConnect.getActivity({ activityId: act?.activityId })
-    // await this.props.sessionPersistance.persist("activity", actDetails)
+    // ?_=1666709045281
+    const splitUrl = `https://connect.garmin.com/modern/proxy/activity-service/activity/${act?.activityId}/splits`
+    let splits = []
+    if (act?.activityId) {
+      const splitsRes = await this.props.garminConnect.get(splitUrl)
+      for (const split of splitsRes?.lapDTOs ?? []) {
+        if (split.intensityType === "ACTIVE") {
+          splits.push({
+            avgHr: split?.averageHR,
+            maxHr: split?.maxHR,
+            distance: mToKm(split?.distance),
+            pace: misToMinKm(split?.averageSpeed),
+          })
+        }
+      }
+    }
+
+    // await this.props.sessionPersistance.persist("activity", splits)
     // console.info(JSON.stringify(act, null, 2))
 
     const date = new Date()
@@ -95,7 +113,7 @@ export class GarminClient {
         maxHr: act?.maxHR,
         distance: mToKm(act?.distance),
         pace: misToMinKm(act?.averageSpeed),
-        splits: []
+        splits
       },
       health: {
         hr: {
@@ -115,7 +133,7 @@ export class GarminClient {
   }
 }
 
-type Split = {
+export type Split = {
   avgHr: number
   maxHr: number
   distance: string
