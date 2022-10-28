@@ -1,6 +1,7 @@
 import { GarminConnect } from "garmin-connect"
-import { isMinusToken } from "typescript"
-import { FileJSONPersistance, IJSONPersistance } from "../repos/filePersistance"
+import { formatDate, getEndOfDay, getStartOfDay } from "../../../shared/utils"
+import { misToMinKm, mToKm, secToH } from "../../../shared/utils/misc"
+import { IJSONPersistance } from "../repos/filePersistance"
 
 export type GarminClientState = {
   username: string
@@ -51,9 +52,71 @@ export class GarminClient {
     }
   }
 
-  async getTodaysInfo(): Promise<TodayInfo> {
-    const acts = await this.props.garminConnect.getActivities(0, 1)
-    const act = acts?.[0]
+  // async getSplits(activityId: number): Promise<any> {
+  //   if (activityId == null) return
+  //   const splitUrl = `https://connect.garmin.com/modern/proxy/activity-service/activity/${activityId}/splits`
+  //   return await this.props.garminConnect.get(splitUrl)
+  // }
+
+  async getActivitiesSummary(date: Date): Promise<any[]> {
+    const acts = await this.props.garminConnect.getActivities(0, 10)
+    const res = []
+    for (const act of acts) {
+      if (act.beginTimestamp >= getStartOfDay(date).getTime()
+        && act.beginTimestamp <= getEndOfDay(date).getTime()
+      ) {
+        res.push(act)
+      }
+    }
+    return res;
+  }
+  
+  async getRHR(dateFrom:Date, dateTo:Date): Promise<any[]> {
+    const rhrUrl = `https://connect.garmin.com/modern/proxy/usersummary-service/stats/heartRate/daily/${formatDate(dateFrom)}/${formatDate(dateTo)}`
+    const rhrRes = await this.props.garminConnect.get(rhrUrl)
+    return rhrRes
+  }
+  async getStress(dateFrom:Date, dateTo:Date): Promise<any[]> {
+    const stressUrl = `https://connect.garmin.com/modern/proxy/usersummary-service/stats/stress/daily/${formatDate(dateFrom)}/${formatDate(dateTo)}`
+    const stressRes = await this.props.garminConnect.get(stressUrl)
+    return stressRes    
+  }
+  async getSleep(dateFrom:Date, dateTo:Date): Promise<any[]> {
+    const sleepUrl = `https://connect.garmin.com/modern/proxy/wellness-service/stats/sleep/daily/${formatDate(dateFrom)}/${formatDate(dateTo)}`
+    const sleepRes = await this.props.garminConnect.get(sleepUrl)
+    return sleepRes    
+  }
+
+  async getInfo(date: Date): Promise<DayInfoSummary> {
+    const acts = await this.getActivitiesSummary(date)
+    const runs: ActivityInfo[] = []
+
+    for (const act of acts) {
+      const splits = []
+      if (act.hasSplits) {
+        // const splitsRes = await this.getSplits(act.activitId)
+        const splitUrl = `https://connect.garmin.com/modern/proxy/activity-service/activity/${act.activityId}/splits`
+        const splitsRes = await this.props.garminConnect.get(splitUrl)
+        // console.log(splitsRes, act)
+        for (const split of splitsRes?.lapDTOs ?? []) {
+          if (split.intensityType === "ACTIVE") {
+            splits.push({
+              avgHr: split?.averageHR,
+              maxHr: split?.maxHR,
+              distance: mToKm(split?.distance),
+              pace: misToMinKm(split?.averageSpeed),
+            })
+          }
+        }
+      }
+      runs.push({
+        avgHr: act?.averageHR,
+        maxHr: act?.maxHR,
+        distance: mToKm(act?.distance),
+        pace: misToMinKm(act?.averageSpeed),
+        splits
+      })
+    }
     // activityId
     // activityName
     // distance (m)
@@ -61,42 +124,10 @@ export class GarminClient {
     // averageHr
     // maxHR
 
-    const misToMinKm = (val: number): string => {
-      const kmh = ((val * 60 * 60) / 1000)
-      const minKm = 60 / kmh
-      const min = Math.floor(minKm)
-      const sec = (minKm - Math.floor(minKm)) * 60
-      return `${min.toFixed(0)}:${sec.toFixed(0)}`
-    }
-    const mToKm = (val: number): string => `${(val / 1000).toFixed(2)}`
-    const secToH = (val: number): string => {
-      if (!val) return ``
-      const h = Math.floor(val / 3600)
-      const sec = Math.floor((val % 3600) / 60)
-      return `${h.toFixed(0)}:${sec.toFixed(0)}`
-    }
     // const actDetails = await this.props.garminConnect.getActivity({ activityId: act?.activityId })
     // ?_=1666709045281
-    const splitUrl = `https://connect.garmin.com/modern/proxy/activity-service/activity/${act?.activityId}/splits`
-    let splits = []
-    if (act?.activityId) {
-      const splitsRes = await this.props.garminConnect.get(splitUrl)
-      for (const split of splitsRes?.lapDTOs ?? []) {
-        if (split.intensityType === "ACTIVE") {
-          splits.push({
-            avgHr: split?.averageHR,
-            maxHr: split?.maxHR,
-            distance: mToKm(split?.distance),
-            pace: misToMinKm(split?.averageSpeed),
-          })
-        }
-      }
-    }
-
     // await this.props.sessionPersistance.persist("activity", splits)
     // console.info(JSON.stringify(act, null, 2))
-
-    const date = new Date()
     const hr = await this.props.garminConnect.getHeartRate(date)
     // restingHeartRate
     // console.info(JSON.stringify(hr, null, 2))
@@ -107,14 +138,8 @@ export class GarminClient {
     // lightfSleepSeconds
     // averageRespirationValue
     // console.info(JSON.stringify(sleep, null, 2))
-    const data: TodayInfo = {
-      run: {
-        avgHr: act?.averageHR,
-        maxHr: act?.maxHR,
-        distance: mToKm(act?.distance),
-        pace: misToMinKm(act?.averageSpeed),
-        splits
-      },
+    const data: DayInfoSummary = {
+      runs,
       health: {
         hr: {
           restingHr: hr?.restingHeartRate
@@ -140,11 +165,11 @@ export type Split = {
   pace: string
 }
 
-type ActivityInfo = Split & {
+export type ActivityInfo = Split & {
   splits: Split[]
 }
 
-type HealthInfo = {
+export type HealthInfo = {
   hr: {
     restingHr: number
   }
@@ -157,7 +182,7 @@ type HealthInfo = {
   }
 }
 
-type TodayInfo = {
-  run?: ActivityInfo
+export type DayInfoSummary = {
+  runs?: ActivityInfo[]
   health: HealthInfo
 }

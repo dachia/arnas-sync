@@ -43,8 +43,23 @@ export class GoogleSheets {
   async findSheetByName(value: string): Promise<JsonType> {
     const info = await this.getInfo()
     const sheet = info["sheets"]?.find(s => s["properties"]?.title === value)
+    // console.log(sheet)
     this.state.sheet = sheet
     return this.state.sheet
+  }
+
+  async insert(data: ((string | number | Date)[])[]): Promise<void> {
+    // const res = await this.state.sheets.spreadsheets.batchUpdate({
+    await this.state.sheets.spreadsheets.values.update(
+      {
+        spreadsheetId: this.state.spreadsheetId,
+        range: `${this.state.sheet["properties"]["title"]}!A1`,
+        valueInputOption: 'RAW',
+        resource: {
+          values: data
+        },
+      },
+    )
   }
 
   async addNote(row: number, col: number, comment: string): Promise<void> {
