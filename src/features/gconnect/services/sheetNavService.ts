@@ -22,10 +22,11 @@ export class SheetNavService {
     // const weekRowStep = 10
     const [monRowNumber,] = await this.props.googleSheets.findRowByValue(getMonthName(date))
     const monDay = getMonthDayNumber(date)
+    // console.log(monRowNumber, monRowNumber + (5 * weekRowMult))
 
     let [dayRowNum, dayColNum] = await this.props.googleSheets.findRowByValue(`${monDay}`, {
       minRow: monRowNumber,
-      maxRow: monRowNumber + (5 * weekRowMult)
+      maxRow: monRowNumber + (6 * weekRowMult) // empty row after month end, therefore not 5 but 6 weeks
     })
     if (!dayRowNum) {
       [dayRowNum, dayColNum] = await this.props.googleSheets.findRowByValue(`${monDay}`, {

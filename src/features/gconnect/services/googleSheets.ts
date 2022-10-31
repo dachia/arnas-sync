@@ -108,5 +108,6 @@ export class GoogleSheets {
     if (rowIdx > -1) {
       return [rowIdx + 1, colIdx + 1]
     }
+    return [null, null]
   }
 }

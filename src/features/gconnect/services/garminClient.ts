@@ -61,7 +61,7 @@ export class GarminClient {
   async getActivitiesSummary(date: Date): Promise<any[]> {
     const acts = await this.props.garminConnect.getActivities(0, 10)
     const res = []
-    for (const act of acts) {
+    for (const act of acts ?? []) {
       if (act.beginTimestamp >= getStartOfDay(date).getTime()
         && act.beginTimestamp <= getEndOfDay(date).getTime()
       ) {
