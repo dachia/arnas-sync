@@ -72,7 +72,6 @@ program
     await sheetNavService.switchToDateSheet(date)
     const [rowNum, colNum] = await sheetNavService.findDateCell(date)
     if (rowNum == null || colNum == null) throw new Error("row not found")
-    console.log(rowNum, colNum)
     await garminClient.login(opts)
     const info = await garminClient.getInfo(date)
     const note = formatNoteService.formatDailyNote(info)
