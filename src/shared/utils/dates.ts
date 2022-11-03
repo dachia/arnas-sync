@@ -1,7 +1,11 @@
+import { subDays as subDaysFns } from 'date-fns'
 import eachDayOfInterval from 'date-fns/eachDayOfInterval'
-import internal from 'stream'
 
 const locale = "lt-lt"
+
+export function subDays(date: Date, days: number): Date {
+  return subDaysFns(date, days)
+}
 export function getMonthDayNumber(date: Date): number {
   return date.getDate()
 }

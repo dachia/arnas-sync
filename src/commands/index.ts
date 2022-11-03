@@ -1,6 +1,6 @@
 import { program } from "commander";
 import { formatNoteService, garminClient, googleClient, googleSheets, sheetNavService } from "../features/gconnect/services";
-import { formatDate, getEachDayOfInterval } from "../shared/utils";
+import { formatDate, getEachDayOfInterval, subDays } from "../shared/utils";
 
 export type UploadOpts = {
   url: string,
@@ -34,8 +34,8 @@ program.
     googleSheets.useSheetFromUrl(opts.url)
     await googleSheets.findSheetByName("Health trends")
     await garminClient.login(opts)
-    const startDate = new Date(2022, 9, 1)
     const endDate = new Date()
+    const startDate = subDays(endDate, 27)
     const rhrRes = await garminClient.getRHR(startDate, endDate)
     const stressRes = await garminClient.getStress(startDate, endDate)
     const sleepRes = await garminClient.getSleep(startDate, endDate)
