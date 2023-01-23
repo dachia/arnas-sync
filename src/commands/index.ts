@@ -1,6 +1,6 @@
 import { program } from "commander";
 import { formatNoteService, garminClient, googleClient, googleSheets, sheetNavService } from "../features/gconnect/services";
-import { formatDate, getEachDayOfInterval, subDays } from "../shared/utils";
+import { format, formatDate, getEachDayOfInterval, getEachWeekOfInterval, getStartOfWeek, getWeek, parseStringDate, subDays } from "../shared/utils";
 
 export type UploadOpts = {
   url: string,
@@ -12,7 +12,8 @@ export type LoginOpts = {
 }
 
 export type InfoOpts = {
-  date: string;
+  startDate: string;
+  endDate: string;
 }
 
 program
@@ -51,7 +52,7 @@ program.
     // console.log(JSON.stringify(data, null, 2))
     await googleSheets.insert([
       ["Date", "RHR", "Stress", "Sleep min"],
-      ...data      
+      ...data
     ])
 
     // console.log(JSON.stringify(rhr, null, 2))
@@ -64,17 +65,42 @@ program
   .requiredOption("-u, --username <letters>")
   .requiredOption("-p, --password <letters>")
   .requiredOption("--url <letters>")
-  .option("--date <letters>")
+  .option("--startDate <letters>")
+  .option("--endDate <letters>")
   .action(async (opts: LoginOpts & UploadOpts & InfoOpts) => {
-    const date = opts?.date ? new Date(Date.parse(opts.date)) : new Date()
+    const startDate = opts?.startDate ? new Date(Date.parse(opts.startDate)) : new Date()
     await googleClient.login()
     googleSheets.useSheetFromUrl(opts.url)
-    await sheetNavService.switchToDateSheet(date)
-    const [rowNum, colNum] = await sheetNavService.findDateCell(date)
-    if (rowNum == null || colNum == null) throw new Error("row not found")
-    await garminClient.login(opts)
-    const info = await garminClient.getInfo(date)
-    const note = formatNoteService.formatDailyNote(info)
-    await googleSheets.addNote(rowNum, colNum, note)
+    const endDate = opts?.endDate ? parseStringDate(opts?.endDate) : new Date()
+    const dates = getEachDayOfInterval({ start: startDate, end: endDate })
+    const weeks = {}
+    for (const date of dates) {
+      await sheetNavService.switchToDateSheet(date)
+      const [rowNum, colNum] = await sheetNavService.findDateCell(date)
+      if (rowNum == null || colNum == null) throw new Error("row not found")
+      await garminClient.login(opts)
+      const info = await garminClient.getInfo(date)
+      const weekNr = format(getStartOfWeek(date))
+      if (!weeks[weekNr]) {
+        weeks[weekNr] = {
+          km: 0,
+          time: 0
+        }
+      }
+      const sumKm = info.runs.reduce((prev, cur) => {
+        return prev + Number(cur.distance)
+      }, 0)
+      weeks[weekNr].km = weeks[weekNr].km + sumKm
+      const note = formatNoteService.formatDailyNote(info)
+      await googleSheets.addNote(rowNum, colNum, note)
+    }
+    for (const weekKey of Object.keys(weeks)) {
+      const date = parseStringDate(weekKey)
+      const [sumRow, sumCell] = await sheetNavService.findSummaryKMCell(date)
+      // console.log(date)
+      // console.log(sumRow, sumCell)
+      const km = weeks[weekKey].km
+      await googleSheets.addNote(sumRow, sumCell, `${km}`)
+    }
   })
 program.parseAsync()

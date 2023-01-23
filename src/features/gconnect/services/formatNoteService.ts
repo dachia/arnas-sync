@@ -9,7 +9,7 @@ export class FormatNoteService {
       const splits = activity?.splits?.map(s => splitToString(s)).join("\n")
       return splitHeader() + `\n` + `${summary}\n\n` + splits + `\n`
     }
-    const health = `rhr: ${summary?.health?.hr.restingHr}, miegas: ${summary?.health?.sleep?.timeH}\n\n`
+    const health = summary?.health ? `rhr: ${summary?.health?.hr.restingHr}, miegas: ${summary?.health?.sleep?.timeH}\n\n` : ""
     const activities = summary?.runs?.length ? summary?.runs.map(runToString).join("\n") : ""
     return health + activities
   }

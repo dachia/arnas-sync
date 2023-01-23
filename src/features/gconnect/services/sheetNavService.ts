@@ -12,11 +12,21 @@ export class SheetNavService {
   ) {
     this.props = props
   }
-  
+
   async switchToDateSheet(date: Date): Promise<JsonType> {
     return await this.props.googleSheets.findSheetByName(getYearName(date))
   }
+
+  async findSummaryTimeCell(date: Date): Promise<[number, number]> {
+    const [row, _] = await this.findDateCell(date)
+    return [row, 9]
+  }
   
+  async findSummaryKMCell(date: Date): Promise<[number, number]> {
+    const [row, _] = await this.findDateCell(date)
+    return [row, 8]
+  }
+
   async findDateCell(date: Date): Promise<[number, number]> {
     const weekRowMult = 2
     // const weekRowStep = 10

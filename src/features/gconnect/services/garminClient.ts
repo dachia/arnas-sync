@@ -59,8 +59,9 @@ export class GarminClient {
   // }
 
   async getActivitiesSummary(date: Date): Promise<any[]> {
-    const acts = await this.props.garminConnect.getActivities(0, 10)
+    const acts = await this.props.garminConnect.getActivities(0, 100)
     const res = []
+    // console.log(acts)
     for (const act of acts ?? []) {
       if (act.beginTimestamp >= getStartOfDay(date).getTime()
         && act.beginTimestamp <= getEndOfDay(date).getTime()
@@ -128,10 +129,10 @@ export class GarminClient {
     // ?_=1666709045281
     // await this.props.sessionPersistance.persist("activity", splits)
     // console.info(JSON.stringify(act, null, 2))
-    const hr = await this.props.garminConnect.getHeartRate(date)
+    // const hr = await this.props.garminConnect.getHeartRate(date)
     // restingHeartRate
     // console.info(JSON.stringify(hr, null, 2))
-    const sleep = await this.props.garminConnect.getSleep(date)
+    // const sleep = await this.props.garminConnect.getSleep(date)
     // sleepTimeSeconds
     // deepSleepSeconds
     // remSleepSeconds
@@ -140,18 +141,18 @@ export class GarminClient {
     // console.info(JSON.stringify(sleep, null, 2))
     const data: DayInfoSummary = {
       runs,
-      health: {
-        hr: {
-          restingHr: hr?.restingHeartRate
-        },
-        sleep: {
-          timeH: secToH(sleep?.sleepTimeSeconds),
-          deepH: secToH(sleep?.deepSleepSeconds),
-          lightH: secToH(sleep?.lightfSleepSeconds),
-          remH: secToH(sleep?.remSleepSeconds),
-          avgRespiration: sleep?.averageRespirationValue,
-        }
-      },
+      // health: {
+      //   hr: {
+      //     restingHr: hr?.restingHeartRate
+      //   },
+      //   sleep: {
+      //     timeH: secToH(sleep?.sleepTimeSeconds),
+      //     deepH: secToH(sleep?.deepSleepSeconds),
+      //     lightH: secToH(sleep?.lightfSleepSeconds),
+      //     remH: secToH(sleep?.remSleepSeconds),
+      //     avgRespiration: sleep?.averageRespirationValue,
+      //   }
+      // },
     }
     // console.log(JSON.stringify(data, null, 2))
     return data
@@ -184,5 +185,5 @@ export type HealthInfo = {
 
 export type DayInfoSummary = {
   runs?: ActivityInfo[]
-  health: HealthInfo
+  health?: HealthInfo
 }
